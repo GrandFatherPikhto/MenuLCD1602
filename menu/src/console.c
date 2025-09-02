@@ -9,37 +9,6 @@
 // Глобальная структура для предыдущих настроек терминала
 struct termios orig_termios;
 
-
-/**
- * @brief Считывает одиночное нажатие клавиши без ожидания Enter.
- * 
- * Эта функция изменяет режим работы терминала, чтобы получить возможность считывать нажатия
- * клавиш по одной, без буферизации и эхо-печати. После считывания символа, настройки
- * терминала возвращаются к изначальному состоянию.
- *
- * @return Возвращает символ, считанный с клавиатуры.
- */
-int getKeyPress(void)
-{
-    struct termios oldt, newt;  // Структуры для хранения настроек терминала
-    int ch;  // Переменная для хранения считанного символа
-
-    tcgetattr(STDIN_FILENO, &oldt);  // Получаем текущие настройки терминала и сохраняем их в oldt
-    newt = oldt;  // Копируем старые настройки в newt для дальнейших изменений
-    newt.c_lflag &= ~(ICANON | ECHO);  // Выключаем канонический режим и эхо-вывод
-                                       // ICANON - отключает канонический ввод, когда данные отправляются сразу
-                                       // ECHO - отключает отображение введённых символов на экране
-
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);  // Устанавливаем новые настройки терминала немедленно (TCSANOW)
-    
-    ch = getchar();  // Считываем одиночный символ с ввода без ожидания Enter
-
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);  // Восстанавливаем старые настройки терминала, чтобы вернуть
-                                              // его в стандартный режим работы
-
-    return ch;  // Возвращаем считанный символ
-}
-
 // Включение raw режима в терминале
 void enableRawMode() {
     struct termios raw;
@@ -52,6 +21,16 @@ void enableRawMode() {
 // Выключение raw режима и восстановление настроек терминала
 void disableRawMode() {
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+}
+
+void printBuf(const char *buf, ssize_t size)
+{
+    printf("size: %ld, ", size);
+    for(int i = 0; i < size; i++)
+    {
+        printf("0x%02X, ", buf[i]);
+    }
+    printf("\n");
 }
 
 /**
@@ -84,6 +63,8 @@ void taskReadKey(rotary_encoder_callback_t rotary_encoder_callback_func, push_bu
         ssize_t n = read(STDIN_FILENO, buf, 3);
         disableRawMode(); // Выключаем raw режим перед выходом
 
+        // printBuf(buf, n);
+
         if (n == -1) {
             perror("read");
             exit(EXIT_FAILURE);
@@ -100,7 +81,7 @@ void taskReadKey(rotary_encoder_callback_t rotary_encoder_callback_func, push_bu
                     break;
                 case 10:
                 case 13:
-                    push_button_callback_func      ();
+                    push_button_callback_func();
                 default:
                     break;
             }            
