@@ -50,17 +50,23 @@
 ```c
 void Menu_Init(void)
 {
-    menu_item_t *menu_start = s_menu_add_item("Start", NULL, 0);
-    menu_item_t *menu_test = s_menu_add_item("Test", NULL, 0);
-    menu_item_t *menu_options = s_menu_add_item ("Options", NULL, 0);
-    // Подменю Options
-    // Флаг MENU_FLAG_GOTO_PARENT -- по нажатию кнопки энкодера переход в родительское меню
-    menu_item_t *menu_options_back = s_menu_add_item ("Back", NULL, MENU_FLAG_GOTO_PARENT);
-    menu_item_t *menu_option1 = s_menu_add_item ("Option1", NULL, 0);
-    menu_item_t *menu_option1 = s_menu_add_item ("Option2", NULL, 0);
-    menu_item_t *menu_option1 = s_menu_add_item ("Option3", NULL, 0);
-    // Установить переход в дочерний элемент (menu_options_back) по нажатию энкодера
-    s_menu_set_child(menu_options, menu_options_back);
+    menu_node_t *start = menu_activate_node(NULL, "Start", NULL, NULL);
+    menu_node_t *options = menu_activate_node(NULL, "Options", NULL, NULL);
+
+    menu_node_t *channel1 = menu_activate_node(options, "Channel 1", NULL, NULL);
+    menu_node_t *enable1 = menu_activate_node(channel1, "Enable", NULL, NULL);
+    menu_node_t *pwm1 = menu_activate_node(channel1, "PWM", NULL, NULL);
+    menu_node_t *pwm_enable = menu_activate_node(pwm1, "Enable", NULL, NULL);
+    menu_node_t *pwm_duty_1 = menu_activate_node(pwm1, "Duty", NULL, NULL);
+    menu_activate_node(pwm_duty_1, "x1", NULL, NULL);
+    menu_activate_node(pwm_duty_1, "x10", NULL, NULL);
+    menu_node_t *pwm_freq_1 = menu_activate_node(pwm1, "Frequency", NULL, NULL);
+    menu_activate_node(pwm_freq_1, "x1", &config_set_hi_pwm_period01, &config_pwm_hi_channel_freq);
+    menu_activate_node(pwm_freq_1, "x10", &config_set_hi_pwm_period10, &config_pwm_hi_channel_freq);
 }
 ```
+
+Функция ```action``` отвечает за обработку изменений значений энкодера (delta)
+
+Функция ```print``` отвечает за возвращение строки, отображаемой в меню, когда активно состояния ```ACTION```
 
