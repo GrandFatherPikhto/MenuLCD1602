@@ -179,9 +179,10 @@ void lcd_print_str(lcd1602_handle_t *lcd, const char *str) {
 // Функции для работы с меню
 static void s_update_menu(lcd1602_handle_t *lcd) {
     lcd_clear(lcd);
-    lcd_print_str(lcd, menu_get_parent_title());
+    lcd_set_cursor(lcd, 0, 0);
+    lcd_print_str(lcd, menu_title());
     lcd_set_cursor(lcd, 0, 1);
-    lcd_print_str(lcd, menu_get_current_title());
+    lcd_print_str(lcd, menu_value());
 }
 
 static void s_handle_key_press(SDL_Keycode key, bool long_press, lcd1602_handle_t *lcd) {

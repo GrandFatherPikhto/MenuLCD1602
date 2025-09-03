@@ -14,6 +14,7 @@
 #define MENU_USAGE_MEMORY MENU_USAGE_STATIC_MEMORY
 
 #define MENU_NODE_INITED 0x01
+#define MENU_NODE_ACTION 0x02
 
 typedef struct menu_node {
     char title[MENU_TITLE_LEN];
@@ -324,13 +325,12 @@ void menu_print_items(void)
 
 void menu_enter(void)
 {
-    s_menu_activate_current();
-    menu_node_t *node = s_context.current;
+    menu_node_t *node = s_menu_activate_current();
     if (node == 0)
         return;
 
     if (node->action) {
-        TOGGLE_FLAG(node->state, MENU_NODE_INITED);
+        TOGGLE_FLAG(node->state, MENU_NODE_ACTION);
     } else if (node->first_child)
     {
         s_context.current = s_context.current->first_child;
@@ -339,14 +339,13 @@ void menu_enter(void)
 
 void menu_out(void)
 {
-    s_menu_activate_current();
-    menu_node_t *node = s_context.current;
+    menu_node_t *node = s_menu_activate_current();
     if (node == 0)
         return;
 
-    if (IS_FLAG_SET(node->state, MENU_NODE_INITED))
+    if (IS_FLAG_SET(node->state, MENU_NODE_ACTION))
     {
-        RESET_FLAG(node->state, MENU_NODE_INITED);
+        RESET_FLAG(node->state, MENU_NODE_ACTION);
     } else if (node->parent != &(s_context.root))
     {
         s_context.current = &(s_context.root);
@@ -355,22 +354,64 @@ void menu_out(void)
 
 const char * menu_title(void)
 {
-    if (s_context.current == 0)
+    menu_node_t *node = s_menu_activate_current();
+
+    if (node == 0)
         return NULL;
 
+    if (IS_FLAG_SET(node->state, MENU_NODE_ACTION))
+    {
+        // printf("%s:%d NODE INITED\n", __FILE__, __LINE__);
+        return node->title;
+    } 
+
+    if (node->parent == 0)
+        return NULL;
     
-    
-    return s_context.current->title;
+    return node->parent->title;
 }
 
 const char * menu_value(void)
 {
     if (s_context.current == 0)
         return NULL;
-    if (IS_FLAG_SET(s_context.current->state, MENU_NODE_INITED))
+    menu_node_t *node = s_context.current;
+
+    if (IS_FLAG_SET(s_context.current->state, MENU_NODE_ACTION) && node->print)
     {
-
-    } else {
-
+        memset(node->value, 0, MENU_TITLE_LEN);
+        node->print(node->value);
+        return node->value;
     }
+
+    return node->title;
+}
+
+bool menu_handle_delta(int delta)
+{
+    if (s_context.current == 0)
+        return false;
+
+    menu_node_t *node = s_context.current;
+
+    if (IS_FLAG_SET(s_context.current->state, MENU_NODE_ACTION) && node->action)
+    {
+        node->action(delta);
+        return true;
+    }
+
+    if (delta > 0)
+    {
+        for(int i = 0; i < delta; i++)
+        {
+            s_context.current = menu_next(s_context.current);
+        }
+    } else {
+        for (int i = 0; i < -delta; i++)
+        {
+            s_context.current = menu_prev(s_context.current);
+        }
+    }
+
+    return true;
 }

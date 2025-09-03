@@ -37,6 +37,7 @@ bool menu_navigate_to_parent(void);
 bool menu_navigate_to_child(void);
 
 bool menu_handle_action(int delta);
+bool menu_handle_delta(int delta);
 bool menu_has_action(void);
 bool menu_has_print(void);
 bool menu_print_value(char *title, char *value);

@@ -37,6 +37,8 @@ void rotary_encoder_callback (int current)
     s_context.prev  = s_context.current;
     s_context.current += s_context.delta;
     
+    menu_handle_delta(s_context.delta);
+#if 0
     if (s_context.state == STATE_MENU)
     {
         menu_navigate_delta(s_context.delta);
@@ -44,10 +46,13 @@ void rotary_encoder_callback (int current)
     {
         menu_handle_action(s_context.delta);
     }
+#endif
 }
 
 void rotary_encoder_push_button_callback (void)
 {
+    menu_enter();
+#if 0    
     if (s_context.state == STATE_MENU)
     {
         if (menu_has_action())
@@ -63,6 +68,7 @@ void rotary_encoder_push_button_callback (void)
         s_context.state = STATE_MENU;
         menu_navigate_to_child();
     }
+#endif        
 }
 
 /**
@@ -71,12 +77,15 @@ void rotary_encoder_push_button_callback (void)
  */
 void rotary_encoder_long_push_button_callback (void)
 {
+    menu_out();
+    /*
     if (s_context.state == STATE_CALLBACK)
     {
         s_context.state = STATE_MENU;
     } else {
         menu_navigate_to_child();
     }
+    */
 }
 
 static void s_reset_context(void)
