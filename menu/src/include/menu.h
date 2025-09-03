@@ -24,7 +24,9 @@ const char * menu_get_current_title(void);
 const char * menu_get_next_title(void);
 
 void menu_set_current(menu_node_t *node);
-void menu_reset_node(menu_node_t *node);
+
+menu_node_t *menu_next(menu_node_t *node);
+menu_node_t *menu_prev(menu_node_t *node);
 
 menu_node_t * menu_navigate_delta(int16_t delta);
 bool menu_navigate_to_parent(void);
@@ -34,6 +36,8 @@ bool menu_handle_action(int delta);
 bool menu_has_action(void);
 bool menu_has_print(void);
 bool menu_print_value(char *title, char *value);
+
+void menu_print_items(void);
 
 #ifdef __cplusplus
 }

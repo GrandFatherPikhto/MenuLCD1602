@@ -13,19 +13,25 @@
 #define MENU_USAGE_DYNAMIC_MEMORY 2
 #define MENU_USAGE_MEMORY MENU_USAGE_STATIC_MEMORY
 
-#define MENU_ITEM_INITED 0x01
+#define MENU_NODE_INITED 0x01
 
 typedef struct menu_node {
     char title[MENU_TITLE_LEN];
+
     struct menu_node *prev;
     struct menu_node *next;
     struct menu_node *parent;
-    menu_action_callback_t action;   //< Функция обратного вызова, выполняемая при взаимодействии с элементом
+    struct menu_node *first_child;
+    struct menu_node *last_child;
+    
+    menu_action_callback_t action;
     menu_print_callback_t print;
+
     uint8_t state;
 } menu_node_t;
 
 typedef struct {
+    struct menu_node root;
     menu_node_t *current;
 #if MENU_USAGE_MEMORY == MENU_USAGE_STATIC_MEMORY
     menu_node_t items[MENU_MAX_ITEMS];
@@ -40,8 +46,6 @@ static menu_context_t s_context = { 0 };
 
 static void s_menu_prepare_chain(menu_node_t *parent);
 static menu_node_t* s_menu_activate_node(void);
-static menu_node_t* s_menu_get_current_parent(void);
-static menu_node_t* s_menu_get_current_child(void);
 static menu_node_t* s_menu_activate_current(void);
 
 void menu_init(void)
@@ -54,42 +58,59 @@ void menu_init(void)
 
     for(int i = 0; i < MENU_MAX_ITEMS; i++)
     {
-        menu_node_t *item = &(s_context.items[i]);
-        memset(item, 0, sizeof(menu_node_t));
+        menu_node_t *node = &(s_context.items[i]);
+        memset(node, 0, sizeof(menu_node_t));
     }
+
+    strncpy(s_context.root.title, "root", MENU_TITLE_LEN);
+    SET_FLAG(s_context.root.state, MENU_NODE_INITED);
 }
 
 menu_node_t * menu_activate_node(menu_node_t *parent, const char *title, menu_action_callback_t action, menu_print_callback_t print)
 {
-    menu_node_t *item = s_menu_activate_node();
+    if (parent == 0)
+        parent = &(s_context.root);
 
-    item->parent = parent;
-    strncpy(item->title, title, MENU_TITLE_LEN);
-    item->action = action;
-    item->print = print;
-    s_context.counter ++;
+    menu_node_t *node = s_menu_activate_node();
 
-    s_menu_prepare_chain(parent);
+    if (!node)
+    {
+        //printf("Error activate node!\n");
+        return NULL;
+    }
 
-    return item;
+    // printf("[%u]\tActivate: %s\n", s_context.counter, title);
+
+    node->parent = parent;
+    strncpy(node->title, title, MENU_TITLE_LEN);
+    node->action = action;
+    node->print = print;
+
+#if 1
+    if (parent) {
+        if (!parent->first_child) {
+            // первый ребёнок
+            parent->first_child = node;
+            parent->last_child = node;
+        } else {
+            // добавляем в конец
+            parent->last_child->next = node;
+            node->prev = parent->last_child;
+            parent->last_child = node;
+        }
+    }
+#endif        
+
+    // s_menu_prepare_chain(parent);
+
+    return node;
 }
 
 void menu_deactivate_node(menu_node_t *item)
 {
     menu_node_t *parent = item->parent;
-    RESET_FLAG(item->state, MENU_ITEM_INITED);
-    menu_reset_node(item);
+    memset(item, 0, sizeof(menu_node_t));
     s_menu_prepare_chain(parent);
-}
-
-void menu_reset_node(menu_node_t *item)
-{
-    item->parent = NULL;
-    item->action = NULL;
-    item->next = NULL;
-    item->prev = NULL;
-    item->state = 0;
-    memset(item->title, 0, MENU_TITLE_LEN);
 }
 
 menu_node_t * menu_navigate_delta(int16_t delta)
@@ -100,12 +121,12 @@ menu_node_t * menu_navigate_delta(int16_t delta)
     {
         for(int i = 0; i < delta; i++)
         {
-            s_context.current = s_context.current->next;
+            s_context.current = menu_next(s_context.current);
         }
     } else {
         for (int i = 0; i < -delta; i++)
         {
-            s_context.current = s_context.current->prev;
+            s_context.current = menu_prev(s_context.current);
         }
     }
     return s_context.current;
@@ -118,7 +139,11 @@ void menu_set_current(menu_node_t *item)
 
 bool menu_navigate_to_parent(void)
 {
-    menu_node_t *parent = s_menu_get_current_parent();
+    s_menu_activate_current();
+    if (!s_context.current)
+        return false;
+
+    menu_node_t *parent = s_context.current->parent;
     if (!parent)
         return false;
 
@@ -128,11 +153,12 @@ bool menu_navigate_to_parent(void)
 
 bool menu_navigate_to_child(void)
 {
-    menu_node_t *child = s_menu_get_current_child();
+    menu_node_t *child = s_context.current->first_child;
     if (!child)
         return false;
 
     s_context.current = child;
+
     return true;
 }
 
@@ -146,20 +172,31 @@ bool menu_handle_action(int delta)
     return true;
 }
 
+menu_node_t *menu_next(menu_node_t *node) {
+    return node->next ? node->next : node->parent->first_child;
+}
+
+menu_node_t *menu_prev(menu_node_t *node) {
+    return node->prev ? node->prev : node->parent->last_child;
+}
+
 const char * menu_get_current_title(void)
 {
-    menu_node_t *item = s_menu_activate_current();
-    if (!item)
+    s_menu_activate_current();
+    if (s_context.current == 0)
         return NULL;
-    return item->title;
+    return s_context.current->title;
 }
 
 const char * menu_get_next_title(void)
 {
-    menu_node_t *item = s_menu_activate_current();
-    if (!item || !item->next)
+    s_menu_activate_current();
+    if (s_context.current == 0)
         return NULL;
-    return item->next->title;
+    menu_node_t *next = menu_next(s_context.current);
+    if (next == NULL)
+        return NULL;
+    return next->title;
 }
 
 bool menu_has_action(void)
@@ -197,53 +234,64 @@ bool menu_print_value(char *title, char *value)
 
 static void s_menu_prepare_chain(menu_node_t *parent)
 {
-    menu_node_t *item = NULL, *prev = NULL, *first = NULL;
-    for (int i = 0; i < s_context.counter; i++)
+    menu_node_t *first = NULL;
+    menu_node_t *last = NULL;
+
+    // Сначала находим все подходящие элементы и связываем их
+    for (int i = 0; i < MENU_MAX_ITEMS; i++)
     {
-        item = &(s_context.items[i]);
+        menu_node_t *node = &(s_context.items[i]);
 
-        if (item->parent != parent)
+        if (IS_FLAG_RESET(node->state, MENU_NODE_INITED) || node->parent != parent)
             continue;
-
-        if (!first)
-            first = item;
-
-        item->prev = prev;
-
-        if (prev)
-            prev->next = item;
-
-        prev = item;
+        
+        if (first == NULL) {
+            first = node;
+        } else {
+            last->next = node;
+            node->prev = last;
+        }
+        last = node;
     }
 
-    first->prev = item;
-    item->next = first;
+    // Делаем список циклическим если есть элементы
+    if (first && last) {
+        first->prev = last;
+        last->next = first;
+    }
 }
 
 static menu_node_t* s_menu_activate_node(void)
 {
-    menu_node_t *item = NULL;
+    menu_node_t *node = NULL;
 #if MENU_USAGE_MEMORY == MENU_USAGE_DYNAMIC_MEMORY
     return (menu_node_t *) malloc(sizeof(menu_node_t));
 #else
     for (int i = 0; i < MENU_MAX_ITEMS; i++)
     {
-        if (IS_FLAG_RESET(s_context.items[i].state, MENU_ITEM_INITED))
-        {
-            SET_FLAG(s_context.items[i].state, MENU_ITEM_INITED);
-            return &(s_context.items[i]);
-        }
+        node = &(s_context.items[i]);
+        if (IS_FLAG_SET(node->state, MENU_NODE_INITED))
+            continue;
+
+        memset(node, 0, sizeof(menu_node_t));
+        SET_FLAG(node->state, MENU_NODE_INITED);
+        s_context.counter ++;
+
+        return node;
     }
+
+    return NULL;
 #endif
 }
 
-menu_node_t * s_menu_get_current_parent(void)
+static menu_node_t* s_menu_activate_current()
 {
-    menu_node_t *current = s_menu_activate_current();
-    if (current)
-        return current->parent;
-    
-    return NULL;
+    if (s_context.current == NULL)
+    {
+        s_context.current = s_context.root.first_child;
+    }
+
+    return s_context.current;
 }
 
 /**
@@ -262,33 +310,3 @@ void menu_print_items(void)
     }
 }
 
-static menu_node_t* s_menu_get_current_child(void)
-{
-    menu_node_t *parent = s_menu_activate_current();
-    for (int i = 0; i < MENU_MAX_ITEMS; i++)
-    {
-        menu_node_t *item = &(s_context.items[i]);
-        if (item->parent == parent)
-            return item;
-    }
-
-    return NULL;
-}
-
-menu_node_t* s_menu_activate_current()
-{
-    if (s_context.current == NULL)
-    {
-        for (int i = 0; i < MENU_MAX_ITEMS; i++)
-        {
-            menu_node_t * item = &(s_context.items[i]);
-            if (item->parent == NULL)
-            {
-                s_context.current = item;
-                break;
-            }
-        }
-    }
-
-    return s_context.current;
-}
