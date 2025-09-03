@@ -10,13 +10,16 @@ set(LIB_NAME ${PROJECT_NAME}_lib)
 # Находим libconfig
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBCONFIG REQUIRED libconfig)
+find_package(SDL2 REQUIRED)
+find_package(SDL2_ttf REQUIRED)
 
 set(LIB_SOURCES 
     src/menu.c
     src/config.c
-    src/console.c
+    # src/console.c
     src/print.c
     src/rotary_encoder.c
+    src/lcd1602.c
     )
 
 set(EXEC_SOURCES
@@ -41,6 +44,8 @@ add_library(
 target_link_libraries(${EXEC_NAME} PRIVATE
     ${LIB_NAME}
     ${LIBCONFIG_LIBRARIES}
+    SDL2::SDL2 
+    SDL2_ttf::SDL2_ttf
 )
 
 target_link_libraries(${LIB_NAME} PRIVATE
@@ -50,6 +55,7 @@ target_link_libraries(${LIB_NAME} PRIVATE
 target_include_directories(${EXEC_NAME} PRIVATE 
     ${INCLUDE_DIRECTORIES}
     ${LIBCONFIG_INCLUDES}
+    ${SDL2_INCLUDE_DIRS}
 )
 
 target_include_directories(${LIB_NAME} PRIVATE

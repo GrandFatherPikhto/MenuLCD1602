@@ -3,6 +3,7 @@
 #include "print.h"
 #include "rotary_encoder.h"
 #include "config.h"
+#include "lcd1602.h"
 
 int main(void)
 {
@@ -38,6 +39,7 @@ int main(void)
     // menu_print_items();
     config_init();
     rotary_encoder_init();
+    lcd1602_init (rotary_encoder_callback, rotary_encoder_push_button_callback, rotary_encoder_long_push_button_callback);
 
     return 0;
 }

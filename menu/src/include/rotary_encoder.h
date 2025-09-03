@@ -14,8 +14,8 @@ extern "C" {
 
 void rotary_encoder_init(void);
 void rotary_encoder_callback (int current);
-void push_button_callback (void);
-void long_push_button_callback (void);
+void rotary_encoder_push_button_callback (void);
+void rotary_encoder_long_push_button_callback (void);
 
 #ifdef __cplusplus
 }

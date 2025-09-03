@@ -17,6 +17,7 @@
 
 typedef struct menu_node {
     char title[MENU_TITLE_LEN];
+    char value[MENU_TITLE_LEN];
 
     struct menu_node *prev;
     struct menu_node *next;
@@ -62,7 +63,7 @@ void menu_init(void)
         memset(node, 0, sizeof(menu_node_t));
     }
 
-    strncpy(s_context.root.title, "root", MENU_TITLE_LEN);
+    strncpy(s_context.root.title, "Main", MENU_TITLE_LEN);
     SET_FLAG(s_context.root.state, MENU_NODE_INITED);
 }
 
@@ -199,6 +200,17 @@ const char * menu_get_next_title(void)
     return next->title;
 }
 
+const char * menu_get_parent_title(void)
+{
+    s_menu_activate_current();
+    if (s_context.current == 0)
+        return NULL;
+    menu_node_t *parent = s_context.current->parent;
+    if (parent == 0)
+        return NULL;
+    return parent->title;
+}
+
 bool menu_has_action(void)
 {
     s_menu_activate_current();
@@ -310,3 +322,55 @@ void menu_print_items(void)
     }
 }
 
+void menu_enter(void)
+{
+    s_menu_activate_current();
+    menu_node_t *node = s_context.current;
+    if (node == 0)
+        return;
+
+    if (node->action) {
+        TOGGLE_FLAG(node->state, MENU_NODE_INITED);
+    } else if (node->first_child)
+    {
+        s_context.current = s_context.current->first_child;
+    }
+}
+
+void menu_out(void)
+{
+    s_menu_activate_current();
+    menu_node_t *node = s_context.current;
+    if (node == 0)
+        return;
+
+    if (IS_FLAG_SET(node->state, MENU_NODE_INITED))
+    {
+        RESET_FLAG(node->state, MENU_NODE_INITED);
+    } else if (node->parent != &(s_context.root))
+    {
+        s_context.current = &(s_context.root);
+    }
+}
+
+const char * menu_title(void)
+{
+    if (s_context.current == 0)
+        return NULL;
+
+    
+    
+    return s_context.current->title;
+}
+
+const char * menu_value(void)
+{
+    if (s_context.current == 0)
+        return NULL;
+    if (IS_FLAG_SET(s_context.current->state, MENU_NODE_INITED))
+    {
+
+    } else {
+
+    }
+}

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <gmock/gmock.h>
-#include "console.h"
+#include "lcd1602.h"
 
 class MockLcd {
 public:

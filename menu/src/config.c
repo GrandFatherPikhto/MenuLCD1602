@@ -3,7 +3,7 @@
 
 #include "common.h"
 #include "config.h"
-#include "console.h"
+#include "lcd1602.h"
 #include "menu.h"
 
 #define CONFIG_PWM_DIVIDER_MAX 10000  ///< Максимальное значение делителя ШИМ
@@ -11,42 +11,47 @@
 #define CONFIG_CONFIG_PWM_FREQUENCY_MAX 1000000 ///< Максимальное значение частоты ШИМ
 #define CONFIG_CONFIG_PWM_FREQUENCY_MIN 5000    ///< Минимальное значение частоты ШИМ
 
-static const int s_dividers[] = {
-    5, // 2.0 MHz
-    8, // 1.25 MHz
-    10, // 1.0 MHz
-    16, // 0.625 MHz
-    20, // 0.5 MHz
-    25, // 0.4 MHz
-    32, // 0.3125 MHz
-    40, // 0.25 MHz
-    50, // 0.2 MHz
-    64, // 0.15625 MHz
-    80, // 0.125 MHz
-    100, // 0.1 MHz
-    125, // 80.0 kHz
-    128, // 78.125 kHz
-    160, // 62.5 kHz
-    200, // 50.0 kHz
-    250, // 40.0 kHz
-    320, // 31.25 kHz
-    400, // 25.0 kHz
-    500, // 20.0 kHz
-    625, // 16.0 kHz
-    640, // 15.625 kHz
-    800, // 12.5 kHz
-    1000, // 10.0 kHz
-    1250, // 8.0 kHz
-    1600, // 6.25 kHz
-    2000, // 5.0 kHz
-    2500, // 4.0 kHz
-    3125, // 3.2 kHz
-    3200, // 3.125 kHz
-    4000, // 2.5 kHz
-    5000, // 2.0 kHz
-    6250, // 1.6 kHz
-    8000, // 1.25 kHz
-    10000, // 1.0 kHz
+typedef struct {
+    int divider;
+    int frequency;
+} frequency_t;
+
+static const frequency_t s_frequencies[] = {
+    {5, 2000000}, // 2.0 MHz
+    {8, 1250000}, // 1.25 MHz
+    {10, 1000000}, // 1.0 MHz
+    {16, 625000}, // 0.625 MHz
+    {20, 500000}, // 0.5 MHz
+    {25, 400000}, // 0.4 MHz
+    {32, 312500}, // 0.3125 MHz
+    {40, 250000}, // 0.25 MHz
+    {50, 200000}, // 0.2 MHz
+    {64, 156250}, // 0.15625 MHz
+    {80, 125000}, // 0.125 MHz
+    {100, 100000}, // 0.1 MHz
+    {125, 80000}, // 80.0 kHz
+    {128, 78125}, // 78.125 kHz
+    {160, 62500}, // 62.5 kHz
+    {200, 50000}, // 50.0 kHz
+    {250, 40000}, // 40.0 kHz
+    {320, 31250}, // 31.25 kHz
+    {400, 25000}, // 25.0 kHz
+    {500, 20000}, // 20.0 kHz
+    {625, 16000}, // 16.0 kHz
+    {640, 15625}, // 15.625 kHz
+    {800, 12500}, // 12.5 kHz
+    {1000, 10000}, // 10.0 kHz
+    {1250, 8000}, // 8.0 kHz
+    {1600, 6250}, // 6.25 kHz
+    {2000, 5000}, // 5.0 kHz
+    {2500, 4000}, // 4.0 kHz
+    {3125, 3200}, // 3.2 kHz
+    {3200, 3125}, // 3.125 kHz
+    {4000, 2500}, // 2.5 kHz
+    {5000, 2000}, // 2.0 kHz
+    {6250, 1600}, // 1.6 kHz
+    {8000, 1250}, // 1.25 kHz
+    {10000, 1000}, // 1.0 kHz
 };
 
 /**
@@ -56,6 +61,7 @@ static const int s_dividers[] = {
 typedef struct 
 {
     uint8_t pos;   ///< Делитель ШИМ
+    frequency_t freq;
 } pwm_data_t;
 
 
@@ -88,11 +94,12 @@ void config_init (void)
  */
 inline static int s_calc_pwm_frequency (uint8_t idx)
 {
-    if (s_context.pwm_data[idx].pos > sizeof(s_dividers) / sizeof(int))
+    if (s_context.pwm_data[idx].pos > sizeof(s_frequencies) / sizeof(frequency_t))
         return -1;
     uint8_t pos = s_context.pwm_data[idx].pos;
-    int divider = s_dividers[pos];
-    int frequency = CONFIG_PWM_FREQUENCY / (divider);
+    int frequency = s_frequencies[pos].frequency;
+    s_context.pwm_data[idx].freq.divider = s_frequencies[pos].divider;
+    s_context.pwm_data[idx].freq.frequency = s_frequencies[pos].frequency;
     // printf("%s:%d:\tpos: %u, divider: %d, frequency: %d\n", __FILE__, __LINE__, pos, divider, frequency);
     return frequency;
 }
@@ -131,7 +138,7 @@ void config_pwm_lo_channel_str(char *value)
  */
 static void s_set_pwm_divider (uint8_t idx, int delta)
 {
-    int size = sizeof(s_dividers) / sizeof(int);
+    int size = sizeof(s_frequencies) / sizeof(frequency_t);
     int pos = s_context.pwm_data[idx].pos;
 
     pos += delta;

@@ -1,7 +1,7 @@
 #include "rotary_encoder.h"
 #include "common.h"
 #include "menu.h"
-#include "console.h"
+#include "lcd1602.h"
 #include "print.h"
 
 typedef enum {
@@ -19,16 +19,12 @@ typedef struct  {
 static rotary_encoder_context_t s_context = {0};
 
 static void s_reset_context(void);
-static void s_display_menu(void);
 
 void rotary_encoder_init(void)
 {
     s_reset_context();
     s_context.state = STATE_MENU;
     menu_navigate_delta(0);
-    s_display_menu();
-    
-    taskReadKey(rotary_encoder_callback, push_button_callback, long_push_button_callback);
 }
 
 void rotary_encoder_callback (int current)
@@ -48,11 +44,9 @@ void rotary_encoder_callback (int current)
     {
         menu_handle_action(s_context.delta);
     }
-
-    s_display_menu();
 }
 
-void push_button_callback (void)
+void rotary_encoder_push_button_callback (void)
 {
     if (s_context.state == STATE_MENU)
     {
@@ -69,15 +63,13 @@ void push_button_callback (void)
         s_context.state = STATE_MENU;
         menu_navigate_to_child();
     }
-
-    s_display_menu();
 }
 
 /**
  * @brief Обратный вызов для обработки длительного нажатия кнопки, 
  * переходящий к родительскому элементу меню или к стартовому элементу меню.
  */
-void long_push_button_callback (void)
+void rotary_encoder_long_push_button_callback (void)
 {
     if (s_context.state == STATE_CALLBACK)
     {
@@ -85,8 +77,6 @@ void long_push_button_callback (void)
     } else {
         menu_navigate_to_child();
     }
-
-    s_display_menu();
 }
 
 static void s_reset_context(void)
@@ -94,18 +84,4 @@ static void s_reset_context(void)
     s_context.current = 0;
     s_context.delta = 0;
     s_context.prev = 0;
-}
-
-static void s_display_menu(void)
-{
-    if (s_context.state == STATE_MENU)
-    {
-        printMenu(menu_get_current_title(), menu_get_next_title());
-    } else
-    {
-        char title[MENU_TITLE_LEN];
-        char value[MENU_TITLE_LEN];
-        menu_print_value(title, value);
-        printMenu(title, value);
-    }
 }

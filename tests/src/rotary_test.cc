@@ -31,7 +31,7 @@ TEST_F(RotaryTest, EncoderRotation) {
 TEST_F(RotaryTest, ButtonPress) {
     EXPECT_CALL(*g_mockLcd, printMenu(testing::_, testing::_)).Times(2);
     
-    push_button_callback();
+    rotary_encoder_push_button_callback();
 }
 
 // Test 3: Фильтрация шумов энкодера

@@ -22,6 +22,10 @@ void menu_deactivate_node(menu_node_t *node);
 
 const char * menu_get_current_title(void);
 const char * menu_get_next_title(void);
+const char * menu_get_parent_title(void);
+
+const char * menu_title(void);
+const char * menu_value(void);
 
 void menu_set_current(menu_node_t *node);
 
@@ -37,10 +41,13 @@ bool menu_has_action(void);
 bool menu_has_print(void);
 bool menu_print_value(char *title, char *value);
 
+void menu_enter(void);
+void menu_out(void);
+
 void menu_print_items(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif // MENU_H
