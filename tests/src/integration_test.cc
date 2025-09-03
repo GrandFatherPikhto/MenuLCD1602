@@ -16,8 +16,8 @@ protected:
         // Создаем тестовое меню с действиями
         auto pwmMenu = menu_activate_node(nullptr, "PWM", nullptr, nullptr);
         menu_activate_node(pwmMenu, "Freq x1", 
-                         config_set_hi_pwm_period01, 
-                         config_pwm_hi_channel_freq);
+                         config_set_hi_pwm_freq, 
+                         config_pwm_hi_channel_str);
     }
 };
 

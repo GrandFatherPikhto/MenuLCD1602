@@ -6,15 +6,57 @@
 #include "console.h"
 #include "menu.h"
 
+#define CONFIG_PWM_DIVIDER_MAX 10000  ///< Максимальное значение делителя ШИМ
+#define CONFIG_PWM_DIVIDER_MIN 2      ///< Минимальное значение делителя ШИМ
+#define CONFIG_CONFIG_PWM_FREQUENCY_MAX 1000000 ///< Максимальное значение частоты ШИМ
+#define CONFIG_CONFIG_PWM_FREQUENCY_MIN 5000    ///< Минимальное значение частоты ШИМ
+
+static const int s_dividers[] = {
+    5, // 2.0 MHz
+    8, // 1.25 MHz
+    10, // 1.0 MHz
+    16, // 0.625 MHz
+    20, // 0.5 MHz
+    25, // 0.4 MHz
+    32, // 0.3125 MHz
+    40, // 0.25 MHz
+    50, // 0.2 MHz
+    64, // 0.15625 MHz
+    80, // 0.125 MHz
+    100, // 0.1 MHz
+    125, // 80.0 kHz
+    128, // 78.125 kHz
+    160, // 62.5 kHz
+    200, // 50.0 kHz
+    250, // 40.0 kHz
+    320, // 31.25 kHz
+    400, // 25.0 kHz
+    500, // 20.0 kHz
+    625, // 16.0 kHz
+    640, // 15.625 kHz
+    800, // 12.5 kHz
+    1000, // 10.0 kHz
+    1250, // 8.0 kHz
+    1600, // 6.25 kHz
+    2000, // 5.0 kHz
+    2500, // 4.0 kHz
+    3125, // 3.2 kHz
+    3200, // 3.125 kHz
+    4000, // 2.5 kHz
+    5000, // 2.0 kHz
+    6250, // 1.6 kHz
+    8000, // 1.25 kHz
+    10000, // 1.0 kHz
+};
+
 /**
  * @brief Структура для хранения данных ШИМ
  * 
  */
 typedef struct 
 {
-    uint16_t divider;   ///< Делитель ШИМ
-    uint32_t frequency; ///< Частота ШИМ
-} pwm_config_t;
+    uint8_t pos;   ///< Делитель ШИМ
+} pwm_data_t;
 
 
 /**
@@ -23,145 +65,106 @@ typedef struct
  */
 typedef struct 
 {
-    pwm_config_t pwm_data [2]; ///< Данные ШИМ
-} config_data_t;
+    pwm_data_t pwm_data [2]; ///< Данные ШИМ
+} config_context_t;
 
 
-static config_data_t s_config_data = {0}; ///< Данные элементов
+static config_context_t s_context = {0}; ///< Данные элементов
 
-static void s_set_pwm_divider (uint8_t idx, int delta, uint16_t distance);
-inline static float s_calc_pwm_frequency (uint16_t divider);
-inline static uint16_t s_calc_pwm_divider (uint32_t frequency);
+inline static int s_calc_pwm_frequency (uint8_t divider);
+static void s_config_pwm_channel_str(uint8_t idx, char *value);
 
 /**
  * @brief Инициализация данных элементов
  */
 void config_init (void)
 {
-    s_config_data.pwm_data[0].divider   = 50;
-    s_config_data.pwm_data[0].frequency = s_calc_pwm_frequency(s_config_data.pwm_data[0].divider);
-    s_config_data.pwm_data[1].divider   = 50;
-    s_config_data.pwm_data[1].frequency = s_calc_pwm_frequency(s_config_data.pwm_data[1].divider);
+    s_context.pwm_data[0].pos = 2;
+    s_context.pwm_data[1].pos = 2;
 }
 
 /**
  * @brief Вычисляет частоту ШИМ
  */
-inline static float s_calc_pwm_frequency (uint16_t divider)
+inline static int s_calc_pwm_frequency (uint8_t idx)
 {
-    return (float)CONFIG_PWM_FREQUENCY / ((float)divider*2.0);
+    if (s_context.pwm_data[idx].pos > sizeof(s_dividers) / sizeof(int))
+        return -1;
+    uint8_t pos = s_context.pwm_data[idx].pos;
+    int divider = s_dividers[pos];
+    int frequency = CONFIG_PWM_FREQUENCY / (divider);
+    // printf("%s:%d:\tpos: %u, divider: %d, frequency: %d\n", __FILE__, __LINE__, pos, divider, frequency);
+    return frequency;
 }
 
-/**
- * @brief Вычисляет делитель ШИМ
- */
-inline static uint16_t s_calc_pwm_divider (uint32_t frequency)
+static void s_config_pwm_channel_str(uint8_t idx, char *value)
 {
-    return (uint16_t)(CONFIG_PWM_FREQUENCY / (2.0 * frequency));
+    int frequency = s_calc_pwm_frequency(idx);
+    //printf("%s:%d:\tfrequency: %d\n", __FILE__, __LINE__, frequency);
+
+    if (frequency <= 0) {
+        snprintf(value, MENU_TITLE_LEN, "Error!");
+    } else if (frequency >= 1000000)
+    {
+        snprintf(value, MENU_TITLE_LEN, "Lo: %.1f MHz", (float)frequency / 1000000.0);
+    } else if (frequency >= 1000)
+    {
+        snprintf(value, MENU_TITLE_LEN, "Lo: %.1f kHz", (float)frequency / 1000.0);
+    } else 
+    {
+        snprintf(value, MENU_TITLE_LEN, "Lo: %.1f Hz", (float)frequency / 1000.0);
+    }
 }
 
-void config_pwm_lo_channel_freq(char *value)
+void config_pwm_hi_channel_str(char *value)
 {
-    snprintf(value, MENU_TITLE_LEN, "%u/%.1fus/%uKHz\r\n", 
-        s_config_data.pwm_data[0].divider, 
-        1000000.0 / s_config_data.pwm_data[0].frequency, 
-        s_config_data.pwm_data[0].frequency / 1000);
+    s_config_pwm_channel_str(0, value);
 }
 
-void config_pwm_hi_channel_freq(char *value)
+void config_pwm_lo_channel_str(char *value)
 {
-    snprintf(value, MENU_TITLE_LEN, "%u/%.1fus/%uKHz\r\n", 
-        s_config_data.pwm_data[1].divider,
-        1000000.0 / s_config_data.pwm_data[1].frequency, 
-        s_config_data.pwm_data[1].frequency / 1000);
+    s_config_pwm_channel_str(1, value);
 }
 
 /** 
- * @brief Устанавливает делитель ШИМ
- * @param delta -- значение на которое изменяется делитель
- * @param distance -- шаг изменения делителя
- * @note
- *    Делитель ШИМ не может быть меньше 2 и больше 10000
- *    Делитель ШИМ должен быть кратен distance
- *    При увеличении делителя, частота ШИМ уменьшается
- *    При уменьшении делителя, частота ШИМ увеличивается
- *    При изменении делителя, частота ШИМ пересчитывается
- *    Печатает частоту ШИМ
  * @return void
  */
-static void s_set_pwm_divider (uint8_t idx, int delta, uint16_t distance)
+static void s_set_pwm_divider (uint8_t idx, int delta)
 {
-    s_config_data.pwm_data[idx].divider = (s_config_data.pwm_data[idx].divider / distance) * distance;  ;
-    s_config_data.pwm_data[idx].divider += delta * distance;
-    // printf("%s:%d %d %u %u\n", __FILE__, __LINE__, delta, s_config_data.pwm_data[idx].divider, s_config_data.pwm_data[idx].frequency);
-    if (s_config_data.pwm_data[idx].divider  > CONFIG_PWM_DIVIDER_MAX)
-        s_config_data.pwm_data[idx].divider  = CONFIG_PWM_DIVIDER_MAX;
-    if (s_config_data.pwm_data[idx].divider  < CONFIG_PWM_DIVIDER_MIN)
-        s_config_data.pwm_data[idx].divider  = CONFIG_PWM_DIVIDER_MIN;
+    int size = sizeof(s_dividers) / sizeof(int);
+    int pos = s_context.pwm_data[idx].pos;
 
-    s_config_data.pwm_data[idx].frequency = s_calc_pwm_frequency(s_config_data.pwm_data[idx].divider);
+    pos += delta;
+    while (pos < 0)
+        pos += size;
+    pos %= size;
+
+
+    if (pos >=0 && pos < size)
+    {
+        s_context.pwm_data[idx].pos = pos;
+    } else
+    {
+        s_context.pwm_data[idx].pos = 3;
+    }
+
+    // printf("%s:%d\tpos = %d, delta=%d\n", __FILE__, __LINE__, s_context.pwm_data[idx].pos, delta);
 }
 
 /**
  * @brief Устанавливает частоту ШИМ c шагом 01
  */
-void config_set_lo_pwm_period01 (int delta)
+void config_set_hi_pwm_freq (int delta)
 {
-    s_set_pwm_divider(0, delta, 1);
-}
-
-/**
- * @brief Устанавливает частоту ШИМ c шагом 10
- */
-void config_set_lo_pwm_period10 (int delta)
-{
-    s_set_pwm_divider(0, delta, 10);
-}
-
-/**
- * @brief Устанавливает частоту ШИМ c шагом 25
- */
-void config_set_lo_pwm_period25 (int delta)
-{
-    s_set_pwm_divider(0, delta, 25);
-}
-
-/**
- * @brief Устанавливает частоту ШИМ c шагом 50
- */
-void config_set_lo_pwm_period50 (int delta)
-{
-    s_set_pwm_divider(0, delta, 50);
+    s_set_pwm_divider(0, delta);
 }
 
 /**
  * @brief Устанавливает частоту ШИМ c шагом 01
  */
-void config_set_hi_pwm_period01 (int delta)
+void config_set_lo_pwm_freq (int delta)
 {
-    s_set_pwm_divider(1, delta, 1);
+    s_set_pwm_divider(1, delta);
 }
 
-/**
- * @brief Устанавливает частоту ШИМ c шагом 10
- */
-void config_set_hi_pwm_period10 (int delta)
-{
-    s_set_pwm_divider(1, delta, 10);
-}
 
-/**
- * @brief Устанавливает частоту ШИМ c шагом 25
- */
-void config_set_hi_pwm_period25 (int delta)
-{
-    s_set_pwm_divider(1, delta, 25);
-}
-
-/**
- * @brief Устанавливает частоту ШИМ c шагом 50
- */
-void config_set_hi_pwm_period50 (int delta)
-{
-    s_set_pwm_divider(1, delta, 50);
-}

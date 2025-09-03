@@ -23,11 +23,12 @@ static void s_display_menu(void);
 
 void rotary_encoder_init(void)
 {
-    taskReadKey(rotary_encoder_callback, push_button_callback, long_push_button_callback);
     s_reset_context();
     s_context.state = STATE_MENU;
     menu_navigate_delta(0);
     s_display_menu();
+    
+    taskReadKey(rotary_encoder_callback, push_button_callback, long_push_button_callback);
 }
 
 void rotary_encoder_callback (int current)
@@ -57,7 +58,7 @@ void push_button_callback (void)
     {
         if (menu_has_action())
         {
-            s_reset_context();
+            // s_reset_context();
             s_context.state = STATE_CALLBACK;
             menu_handle_action(0);
         } else {

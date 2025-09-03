@@ -13,7 +13,7 @@ protected:
 TEST_F(ConfigTest, ConfigurationInitialization) {
     char buffer[MENU_TITLE_LEN];
     
-    config_pwm_hi_channel_freq(buffer);
+    config_pwm_hi_channel_str(buffer);
     // Проверяем, что значение инициализировано
     EXPECT_STRNE(buffer, "");
 }
@@ -24,13 +24,13 @@ TEST_F(ConfigTest, PWMFrequencyChange) {
     char buffer2[MENU_TITLE_LEN];
     
     // Получаем начальное значение
-    config_pwm_hi_channel_freq(buffer1);
+    config_pwm_hi_channel_str(buffer1);
     
     // Изменяем частоту
-    config_set_hi_pwm_period10(1); // +10
+    config_set_hi_pwm_freq(1); // +10
     
     // Получаем новое значение
-    config_pwm_hi_channel_freq(buffer2);
+    config_pwm_hi_channel_str(buffer2);
     
     // Значения должны отличаться
     EXPECT_STRNE(buffer1, buffer2);
@@ -39,10 +39,10 @@ TEST_F(ConfigTest, PWMFrequencyChange) {
 // Test 3: Граничные значения PWM
 TEST_F(ConfigTest, PWMBoundaryValues) {
     // Пытаемся установить значение ниже минимума
-    config_set_hi_pwm_period01(-1000);
+    config_set_hi_pwm_freq(-1000);
     
     char buffer[MENU_TITLE_LEN];
-    config_pwm_hi_channel_freq(buffer);
+    config_pwm_hi_channel_str(buffer);
     
     // Должно остаться минимальное значение
     EXPECT_STRNE(buffer, "");

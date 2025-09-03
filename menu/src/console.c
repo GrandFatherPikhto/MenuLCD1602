@@ -55,7 +55,7 @@ void printBuf(const char *buf, ssize_t size)
  *   текущим значением переменной.
  */
 void taskReadKey(rotary_encoder_callback_t rotary_encoder_callback_func, push_button_callback_t push_button_callback_func, long_push_buttont_callback_t long_push_button_callback_func) {
-    uint32_t current = 0;
+    static int current = 0;
     char buf[3];
 
     while (1) {
@@ -119,10 +119,12 @@ void taskReadKey(rotary_encoder_callback_t rotary_encoder_callback_func, push_bu
  */
 void printMenu(const char *str1, const char *str2)
 {
+#ifdef CONSOLE_CLEAR    
     printf("\033[H\033[J"); // Экранированные последовательности ANSI для очистки экрана.
                             // \033[H - перемещает курсор в верхний левый угол экрана (1,1).
                             // \033[J - очищает экран от курсора до конца. Вместе это стирает весь экран.
     printf("Для выхода нажмите Esc\r\n");
+#endif    
 
     printf("> %s\r\n", str1); // Выводит первый пункт меню с символом ">", обозначающим его выбор или акцент.
                               // \r\n используется для перевода строки и возвращения каретки.

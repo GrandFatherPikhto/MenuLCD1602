@@ -23,7 +23,7 @@ typedef struct menu_node {
     struct menu_node *parent;
     struct menu_node *first_child;
     struct menu_node *last_child;
-    
+
     menu_action_callback_t action;
     menu_print_callback_t print;
 
@@ -75,11 +75,8 @@ menu_node_t * menu_activate_node(menu_node_t *parent, const char *title, menu_ac
 
     if (!node)
     {
-        //printf("Error activate node!\n");
         return NULL;
     }
-
-    // printf("[%u]\tActivate: %s\n", s_context.counter, title);
 
     node->parent = parent;
     strncpy(node->title, title, MENU_TITLE_LEN);
@@ -108,6 +105,8 @@ menu_node_t * menu_activate_node(menu_node_t *parent, const char *title, menu_ac
 
 void menu_deactivate_node(menu_node_t *item)
 {
+    if (item == &(s_context.root))
+        return;
     menu_node_t *parent = item->parent;
     memset(item, 0, sizeof(menu_node_t));
     s_menu_prepare_chain(parent);
@@ -140,11 +139,12 @@ void menu_set_current(menu_node_t *item)
 bool menu_navigate_to_parent(void)
 {
     s_menu_activate_current();
+
     if (!s_context.current)
         return false;
 
     menu_node_t *parent = s_context.current->parent;
-    if (!parent)
+    if (!parent || parent == &(s_context.root))
         return false;
 
     s_context.current = parent;

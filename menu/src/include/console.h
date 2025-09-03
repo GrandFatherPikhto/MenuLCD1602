@@ -7,6 +7,8 @@
 extern "C" {
 #endif
 
+#define CONSOLE_CLEAR
+
 typedef void (* rotary_encoder_callback_t) (int current);
 typedef void (* push_button_callback_t) (void);
 typedef void (* long_push_buttont_callback_t) (void);
