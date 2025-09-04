@@ -188,7 +188,7 @@ static void s_update_menu(lcd1602_handle_t *lcd) {
     menu_node_t *current = menu_current();
     if (!current) return;
 
-    menu_node_t *parent = menu_parent(current);
+    const menu_node_t *parent = menu_parent(current);
 
     const char *title = parent ? menu_title(parent) : menu_title(current);
     const char *value = NULL;

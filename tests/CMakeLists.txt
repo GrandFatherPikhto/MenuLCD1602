@@ -23,10 +23,10 @@ FetchContent_MakeAvailable(googletest)
 add_executable(${PROJECT_NAME})
 target_sources(${PROJECT_NAME}
     PRIVATE 
-        src/tests.cc
+        # src/tests.cc
         #src/config_test.cc
         #src/integration_test.cc
-        #src/menu_test.cc
+        src/menu_test.cc
         # src/rotary_test.cc
     )
 target_link_libraries(${PROJECT_NAME}
@@ -65,11 +65,11 @@ add_test(NAME IntegrationTests COMMAND ${PROJECT_NAME} --gtest_filter="Integrati
 add_test(NAME AllTests COMMAND ${PROJECT_NAME})
 
 # Устанавливаем свойства тестов
-set_tests_properties(ConfigTests PROPERTIES LABELS "unit;config")
-set_tests_properties(MenuTests PROPERTIES LABELS "unit;menu")
-set_tests_properties(RotaryTests PROPERTIES LABELS "unit;rotary")
-set_tests_properties(IntegrationTests PROPERTIES LABELS "integration")
-set_tests_properties(AllTests PROPERTIES LABELS "all")
+# set_tests_properties(ConfigTests PROPERTIES LABELS "unit;config")
+# set_tests_properties(MenuTests PROPERTIES LABELS "unit;menu")
+# set_tests_properties(RotaryTests PROPERTIES LABELS "unit;rotary")
+# set_tests_properties(IntegrationTests PROPERTIES LABELS "integration")
+# set_tests_properties(AllTests PROPERTIES LABELS "all")
 
 # Для автоматического обнаружения GoogleTest тестов
 include(GoogleTest)

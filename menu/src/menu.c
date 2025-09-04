@@ -158,7 +158,11 @@ static void s_menu_prepare_chain(menu_node_t *parent)
 void menu_enter(void)
 {
     menu_node_t *cur = s_context.current;
+    
     if (!cur) return;
+
+    if (menu_is_root(cur))
+        s_context.current = cur->children;
 
     if (cur->state == MENU_NODE_IN_ACTION)
     {
@@ -201,6 +205,20 @@ void menu_next(void)
     s_context.current = s_menu_cycle(s_context.current, true);
 }
 
+const menu_node_t * menu_get_next(const menu_node_t *node)
+{
+    if (node == 0)
+        return 0;
+    return node->next;
+}
+
+const menu_node_t * menu_get_prev(const menu_node_t *node)
+{
+    if (node == 0)
+        return 0;
+    return node->prev;
+}
+
 void menu_prev(void)
 {
     s_context.current = s_menu_cycle(s_context.current, false);
@@ -236,12 +254,12 @@ void menu_handle_delta(int8_t delta)
     }
 }
 
-const char *menu_title(menu_node_t *node)
+const char *menu_title(const menu_node_t *node)
 {
     return (node && node->title) ? node->title : "";
 }
 
-const char *menu_value(menu_node_t *node)
+const char *menu_value(const menu_node_t *node)
 {
     static char buf[MENU_VALUE_LEN];
     if (!node) return "";
@@ -254,12 +272,17 @@ const char *menu_value(menu_node_t *node)
     return "";
 }
 
-menu_node_t *menu_child(menu_node_t *node)
+const menu_node_t *menu_child(const menu_node_t *node)
 {
     return node->children;
 }
 
-menu_node_t *menu_parent(menu_node_t *node)
+const menu_node_t *menu_child_last(const menu_node_t *node)
+{
+    return node->children_last;
+}
+
+const menu_node_t *menu_parent(const menu_node_t *node)
 {
     return node->parent;
 }

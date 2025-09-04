@@ -34,6 +34,8 @@ int main(void)
         &config_set_lo_pwm_freq, 
         &config_pwm_lo_channel_str);
 
+    menu_set_root(root_node); // Только в конце, чтобы активировать первую дочернюю ноду от рута
+
     menu_add_child(root_node, start_node);
     menu_add_child(root_node, options_node);
 
@@ -53,13 +55,16 @@ int main(void)
     menu_add_child(ch2_pwm_node, ch2_pwm_duty_node);
     menu_add_child(ch2_pwm_node, ch2_pwm_freq_node);
 
-    menu_set_root(root_node);
-    // menu_set_current(start_node);
+    menu_set_current(start_node);
 
     print_menu();
     config_init();
     rotary_encoder_init();
-    lcd1602_init (rotary_encoder_callback, rotary_encoder_push_button_callback, rotary_encoder_long_push_button_callback);
+    lcd1602_init (
+        rotary_encoder_callback, 
+        rotary_encoder_push_button_callback, 
+        rotary_encoder_long_push_button_callback
+    );
 
     return 0;
 }

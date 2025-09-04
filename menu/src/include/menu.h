@@ -46,6 +46,8 @@ typedef struct menu_node menu_node_t;
 
 void menu_init(void);
 
+menu_node_t *menu_init_first(void);
+
 menu_node_t *menu_create_node(const char *title,
                               menu_node_action_t action,
                               menu_node_print_t print);
@@ -55,6 +57,8 @@ void menu_set_current(menu_node_t *node);
 
 menu_node_t *menu_root(void);
 menu_node_t *menu_current(void);
+const menu_node_t * menu_get_next(const menu_node_t *node);
+const menu_node_t * menu_get_prev(const menu_node_t *node);
 
 bool menu_is_root(const menu_node_t *node);
 bool menu_is_leaf(const menu_node_t *node);
@@ -70,11 +74,12 @@ void menu_prev(void);
 void menu_handle_action(void);
 void menu_handle_delta(int8_t delta);
 
-menu_node_t *menu_child(menu_node_t *node);
-menu_node_t *menu_parent(menu_node_t *node);
+const menu_node_t *menu_child(const menu_node_t *node);
+const menu_node_t *menu_child_last(const menu_node_t *node);
+const menu_node_t *menu_parent(const menu_node_t *node);
 
-const char *menu_title(menu_node_t *node);
-const char *menu_value(menu_node_t *node);
+const char *menu_title(const menu_node_t *node);
+const char *menu_value(const menu_node_t *node);
 
 #ifdef __cplusplus
 }
