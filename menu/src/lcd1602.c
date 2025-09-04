@@ -27,6 +27,9 @@ bool lcd1602_init(rotary_encoder_callback_t renc_position_cb,
     push_button_callback_t renc_push_button_cb, 
     long_push_buttont_callback_t renc_long_push_button_cb)
 {
+    // const char defaultLcdFont[] = "/home/yevst/Projects/CCPP/lcd1602/resources/lcd_font.ttf";
+    const char defaultLcdFont[] = "/usr/share/fonts/truetype/freefont/FreeMono.ttf";
+
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         printf("SDL initialization failed: %s\n", SDL_GetError());
         return false;
@@ -52,7 +55,7 @@ bool lcd1602_init(rotary_encoder_callback_t renc_position_cb,
     }
     
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    TTF_Font *font = TTF_OpenFont("font.ttf", 20);
+    TTF_Font *font = TTF_OpenFont(defaultLcdFont, 22);
     
     if (!font) {
         // Попробуем найти стандартный шрифт
@@ -178,11 +181,13 @@ void lcd_print_str(lcd1602_handle_t *lcd, const char *str) {
 
 // Функции для работы с меню
 static void s_update_menu(lcd1602_handle_t *lcd) {
+    const char *title = menu_title();
+    const char *value = menu_value();
     lcd_clear(lcd);
     lcd_set_cursor(lcd, 0, 0);
-    lcd_print_str(lcd, menu_title());
+    lcd_print_str(lcd, title);
     lcd_set_cursor(lcd, 0, 1);
-    lcd_print_str(lcd, menu_value());
+    lcd_print_str(lcd, value);
 }
 
 static void s_handle_key_press(SDL_Keycode key, bool long_press, lcd1602_handle_t *lcd) {

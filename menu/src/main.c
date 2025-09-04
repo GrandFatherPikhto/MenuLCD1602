@@ -36,7 +36,7 @@ int main(void)
         &config_set_lo_pwm_freq, 
         &config_pwm_lo_channel_str);
 
-    // menu_print_items();
+    print_menu();
     config_init();
     rotary_encoder_init();
     lcd1602_init (rotary_encoder_callback, rotary_encoder_push_button_callback, rotary_encoder_long_push_button_callback);

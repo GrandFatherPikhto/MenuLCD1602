@@ -1,17 +1,77 @@
-#include "print.h"
+#include <stdio.h>
 #include "menu.h"
 
-void Print_Menu_Item(menu_node_t *item)
-{
-    printf("%s\n", menu_get_current_title());
-}
+static void s_print_menu_tree(const menu_node_t *node, int level);
 
-void Print_Menu_Chain(menu_node_t *parent)
+void print_menu(void)
 {
-
-}
-
-void Print_Menu()
-{
+    const menu_node_t *root = menu_get_root();
+    const menu_node_t *current = menu_get_first_child((menu_node_t *)root);
     
+    printf("┌───────────────────────────────┐\n");
+    printf("│          МЕНЮ СИСТЕМЫ         │\n");
+    printf("├───────────────────────────────┤\n");
+    
+    // Рекурсивная функция для печати дерева
+    s_print_menu_tree(root, 0);
+    
+    printf("└───────────────────────────────┘\n");
+}
+
+// Вспомогательная рекурсивная функция для печати дерева
+static void s_print_menu_tree(const menu_node_t *node, int level)
+{
+    if (node == NULL) return;
+    
+    // Печатаем детей текущего узла
+    const menu_node_t *child = menu_get_first_child((menu_node_t *)node);
+    
+    while (child != NULL)
+    {
+        // Отступ в зависимости от уровня вложенности
+        for (int i = 0; i < level; i++)
+        {
+            if (i == level - 1)
+                printf("├── ");
+            else
+                printf("│   ");
+        }
+        
+        if (level == 0)
+            printf("│ ");
+        
+        // Печатаем название пункта меню
+        const char *title = menu_node_title((menu_node_t *)child);
+        if (title)
+        {
+            if (level == 0)
+                printf("● %-27s │\n", title);
+            else
+                printf("○ %s\n", title);
+        }
+        
+        // Рекурсивно печатаем подменю
+        if (menu_get_first_child((menu_node_t *)child) != NULL)
+        {
+            s_print_menu_tree(child, level + 1);
+            
+            // Печатаем разделитель после подменю
+            if (level > 0)
+            {
+                for (int i = 0; i < level; i++)
+                {
+                    if (i == level - 1)
+                        printf("│   ");
+                    else
+                        printf("│   ");
+                }
+                printf("\n");
+            }
+        }
+        
+        child = menu_next(child);
+    }
+    
+    if (level == 0)
+        printf("│%-31s│\n", "");
 }

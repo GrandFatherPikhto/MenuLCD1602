@@ -20,32 +20,28 @@ void menu_init(void);
 menu_node_t * menu_activate_node(menu_node_t *parent, const char *title, menu_action_callback_t action, menu_print_callback_t print);
 void menu_deactivate_node(menu_node_t *node);
 
-const char * menu_get_current_title(void);
-const char * menu_get_next_title(void);
-const char * menu_get_parent_title(void);
-
 const char * menu_title(void);
 const char * menu_value(void);
 
 void menu_set_current(menu_node_t *node);
 
-menu_node_t *menu_next(menu_node_t *node);
-menu_node_t *menu_prev(menu_node_t *node);
+const menu_node_t *menu_next_cycle(const menu_node_t *node);
+const menu_node_t *menu_prev_cycle(const menu_node_t *node);
+const menu_node_t *menu_next(const menu_node_t *node);
+const menu_node_t *menu_prev(const menu_node_t *node);
 
-menu_node_t * menu_navigate_delta(int16_t delta);
-bool menu_navigate_to_parent(void);
-bool menu_navigate_to_child(void);
-
-bool menu_handle_action(int delta);
 bool menu_handle_delta(int delta);
+
 bool menu_has_action(void);
 bool menu_has_print(void);
-bool menu_print_value(char *title, char *value);
 
 void menu_enter(void);
 void menu_out(void);
 
-void menu_print_items(void);
+const menu_node_t * menu_get_root(void);
+const menu_node_t * menu_get_first_child(menu_node_t *node);
+const menu_node_t *menu_get_parent(menu_node_t *node);
+const char * menu_node_title(menu_node_t *node);
 
 #ifdef __cplusplus
 }
