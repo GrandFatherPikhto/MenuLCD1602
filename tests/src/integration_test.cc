@@ -26,17 +26,18 @@ TEST_F(IntegrationTest, FullUsageScenario) {
     EXPECT_CALL(*g_mockLcd, printMenu(testing::_, testing::_)).Times(4);
     
     // 1. Навигация к пункту меню
-    // menu_navigate_delta(1);
+    menu_handle_delta(1);
     
     // 2. Вход в подменю
-    // menu_navigate_to_child();
+    menu_enter();
     
     // 3. Выполнение действия
-    // menu_handle_action(1);
+    menu_handle_delta(1);
     
     // 4. Отображение значения
-    char title[MENU_TITLE_LEN], value[MENU_TITLE_LEN];
-    // menu_print_value(title, value);
+    const char *title = menu_title();
+    const char *value = menu_value();
+    
     
     EXPECT_STRNE(value, "");
 }

@@ -9,23 +9,27 @@ typedef struct lcd1602_handle {
     bool blink;
     int contrast;
     
-    rotary_encoder_callback_t rotary_encoder_position_cb;
-    push_button_callback_t rotary_encoder_push_button_cb; 
-    long_push_buttont_callback_t rotary_encoder_long_push_button_cb;
+    rotary_encoder_callback_t position_cb;
+    push_button_callback_t push_button_cb; 
+    long_push_buttont_callback_t long_push_button_cb;
 
     int pos;
 
 } lcd1602_handle_t;
 
-static void s_lcd_init(lcd1602_handle_t *lcd, rotary_encoder_callback_t renc_position_cb, push_button_callback_t renc_push_button_cb, long_push_buttont_callback_t renc_long_push_button_cb);
+static void s_lcd_init(
+    lcd1602_handle_t *lcd, 
+    rotary_encoder_callback_t position_cb, 
+    push_button_callback_t push_button_cb, 
+    long_push_buttont_callback_t long_push_button_cb);
 static void s_handle_key_press(SDL_Keycode key, bool long_press, lcd1602_handle_t *lcd);
 static void s_lcd_render(SDL_Renderer *renderer, TTF_Font *font, lcd1602_handle_t *lcd);
 
 static void s_update_menu(lcd1602_handle_t *lcd);
 
-bool lcd1602_init(rotary_encoder_callback_t renc_position_cb, 
-    push_button_callback_t renc_push_button_cb, 
-    long_push_buttont_callback_t renc_long_push_button_cb)
+bool lcd1602_init(rotary_encoder_callback_t position_cb, 
+    push_button_callback_t push_button_cb, 
+    long_push_buttont_callback_t long_push_button_cb)
 {
     // const char defaultLcdFont[] = "/home/yevst/Projects/CCPP/lcd1602/resources/lcd_font.ttf";
     const char defaultLcdFont[] = "/usr/share/fonts/truetype/freefont/FreeMono.ttf";
@@ -69,7 +73,7 @@ bool lcd1602_init(rotary_encoder_callback_t renc_position_cb,
     }
     
     lcd1602_handle_t lcd;
-    s_lcd_init(&lcd, renc_position_cb, renc_push_button_cb, renc_long_push_button_cb);
+    s_lcd_init(&lcd, position_cb, push_button_cb, long_push_button_cb);
     s_update_menu(&lcd);
     
     bool running = true;
@@ -128,9 +132,9 @@ bool lcd1602_init(rotary_encoder_callback_t renc_position_cb,
 }
 
 static void s_lcd_init(lcd1602_handle_t *lcd, 
-    rotary_encoder_callback_t renc_position_cb, 
-    push_button_callback_t renc_push_button_cb, 
-    long_push_buttont_callback_t renc_long_push_button_cb) {
+    rotary_encoder_callback_t position_cb, 
+    push_button_callback_t push_button_cb, 
+    long_push_buttont_callback_t long_push_button_cb) {
     for (int y = 0; y < 2; y++) {
         for (int x = 0; x < 16; x++) {
             lcd->display[y][x] = ' ';
@@ -143,9 +147,9 @@ static void s_lcd_init(lcd1602_handle_t *lcd,
     lcd->blink = false;
     lcd->contrast = 50;
     lcd->pos = 0;
-    lcd->rotary_encoder_position_cb = renc_position_cb;
-    lcd->rotary_encoder_push_button_cb = renc_push_button_cb;
-    lcd->rotary_encoder_long_push_button_cb = renc_long_push_button_cb;
+    lcd->position_cb = position_cb;
+    lcd->push_button_cb = push_button_cb;
+    lcd->long_push_button_cb = long_push_button_cb;
 }
 
 void lcd_clear(lcd1602_handle_t *lcd) {
@@ -181,8 +185,19 @@ void lcd_print_str(lcd1602_handle_t *lcd, const char *str) {
 
 // Функции для работы с меню
 static void s_update_menu(lcd1602_handle_t *lcd) {
-    const char *title = menu_title();
-    const char *value = menu_value();
+    menu_node_t *current = menu_current();
+    if (!current) return;
+
+    menu_node_t *parent = menu_parent(current);
+
+    const char *title = parent ? menu_title(parent) : menu_title(current);
+    const char *value = NULL;
+
+    if (menu_is_action(current))
+        value = menu_value(current);
+    else
+        value = menu_title(current);
+
     lcd_clear(lcd);
     lcd_set_cursor(lcd, 0, 0);
     lcd_print_str(lcd, title);
@@ -194,20 +209,20 @@ static void s_handle_key_press(SDL_Keycode key, bool long_press, lcd1602_handle_
     switch (key) {
         case SDLK_UP:
             lcd->pos += 2;
-            lcd->rotary_encoder_position_cb(lcd->pos);
+            lcd->position_cb(lcd->pos);
             break;
             
         case SDLK_DOWN:
             lcd->pos -= 2;
-            lcd->rotary_encoder_position_cb(lcd->pos);
+            lcd->position_cb(lcd->pos);
             break;
             
         case SDLK_RETURN:
-            lcd->rotary_encoder_push_button_cb();
+            lcd->push_button_cb();
             break;
             
         case SDLK_d:
-            lcd->rotary_encoder_long_push_button_cb();
+            lcd->long_push_button_cb();
             break;
             
         case SDLK_ESCAPE:

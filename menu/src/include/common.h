@@ -8,6 +8,7 @@
 #include <termios.h>
 
 #define MENU_TITLE_LEN 0x20
+#define MENU_VALUE_LEN 0x20
 #define MENU_MAX_ITEMS 0x20
 
 #define CONFIG_PWM_FREQUENCY 10000000 ///< Частота ШИМ 10 MHz

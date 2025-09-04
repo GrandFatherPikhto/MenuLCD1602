@@ -23,10 +23,11 @@ FetchContent_MakeAvailable(googletest)
 add_executable(${PROJECT_NAME})
 target_sources(${PROJECT_NAME}
     PRIVATE 
-        src/config_test.cc
-        src/integration_test.cc
-        src/menu_test.cc
-        src/rotary_test.cc
+        src/tests.cc
+        #src/config_test.cc
+        #src/integration_test.cc
+        #src/menu_test.cc
+        # src/rotary_test.cc
     )
 target_link_libraries(${PROJECT_NAME}
     PRIVATE ${GTEST_LDFLAGS}

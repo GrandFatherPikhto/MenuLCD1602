@@ -3,3 +3,6 @@
 
 # Исключить папку build
 build/
+
+# Исключить python
+/python/** 

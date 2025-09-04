@@ -22,7 +22,10 @@ void lcd_set_cursor(lcd1602_handle_t *lcd, int x, int y);
 void lcd_print_char(lcd1602_handle_t *lcd, char ch);
 void lcd_print_str(lcd1602_handle_t *lcd, const char *str);
 
-bool lcd1602_init(rotary_encoder_callback_t rotary_encoder_callback_func, push_button_callback_t push_button_callback_func, long_push_buttont_callback_t long_push_button_callback_func);
+bool lcd1602_init(
+    rotary_encoder_callback_t position_cf, 
+    push_button_callback_t push_button_cf, 
+    long_push_buttont_callback_t long_push_button_cf);
 
 #ifdef __cplusplus
 }

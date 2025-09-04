@@ -9,11 +9,11 @@ extern "C" {
 
 void config_init (void);
 
-void config_pwm_lo_channel_str(char *value);
-void config_pwm_hi_channel_str(char *value);
+void config_pwm_lo_channel_str(char *value, size_t len);
+void config_pwm_hi_channel_str(char *value, size_t len);
 
-void config_set_lo_pwm_freq  (int delta);
-void config_set_hi_pwm_freq  (int delta);
+void config_set_lo_pwm_freq  (int8_t delta);
+void config_set_hi_pwm_freq  (int8_t delta);
 
 #ifdef __cplusplus
 }

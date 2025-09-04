@@ -78,7 +78,8 @@ typedef struct
 static config_context_t s_context = {0}; ///< Данные элементов
 
 inline static int s_calc_pwm_frequency (uint8_t divider);
-static void s_config_pwm_channel_str(uint8_t idx, char *value);
+static void s_config_pwm_channel_str(uint8_t idx, char *value, size_t len);
+static void s_set_pwm_divider (uint8_t idx, int8_t delta);
 
 /**
  * @brief Инициализация данных элементов
@@ -104,39 +105,39 @@ inline static int s_calc_pwm_frequency (uint8_t idx)
     return frequency;
 }
 
-static void s_config_pwm_channel_str(uint8_t idx, char *value)
+static void s_config_pwm_channel_str(uint8_t idx, char *value, size_t len)
 {
     int frequency = s_calc_pwm_frequency(idx);
     //printf("%s:%d:\tfrequency: %d\n", __FILE__, __LINE__, frequency);
 
     if (frequency <= 0) {
-        snprintf(value, MENU_TITLE_LEN, "Error!");
+        snprintf(value, len, "Error!");
     } else if (frequency >= 1000000)
     {
-        snprintf(value, MENU_TITLE_LEN, "Lo: %.1f MHz", (float)frequency / 1000000.0);
+        snprintf(value, len, "Lo: %.1f MHz", (float)frequency / 1000000.0);
     } else if (frequency >= 1000)
     {
-        snprintf(value, MENU_TITLE_LEN, "Lo: %.1f kHz", (float)frequency / 1000.0);
+        snprintf(value, len, "Lo: %.1f kHz", (float)frequency / 1000.0);
     } else 
     {
-        snprintf(value, MENU_TITLE_LEN, "Lo: %.1f Hz", (float)frequency / 1000.0);
+        snprintf(value, len, "Lo: %.1f Hz", (float)frequency / 1000.0);
     }
 }
 
-void config_pwm_hi_channel_str(char *value)
+void config_pwm_hi_channel_str(char *value, size_t len)
 {
-    s_config_pwm_channel_str(0, value);
+    s_config_pwm_channel_str(0, value, len);
 }
 
-void config_pwm_lo_channel_str(char *value)
+void config_pwm_lo_channel_str(char *value, size_t len)
 {
-    s_config_pwm_channel_str(1, value);
+    s_config_pwm_channel_str(1, value, len);
 }
 
 /** 
  * @return void
  */
-static void s_set_pwm_divider (uint8_t idx, int delta)
+static void s_set_pwm_divider (uint8_t idx, int8_t delta)
 {
     int size = sizeof(s_frequencies) / sizeof(frequency_t);
     int pos = s_context.pwm_data[idx].pos;
@@ -161,7 +162,7 @@ static void s_set_pwm_divider (uint8_t idx, int delta)
 /**
  * @brief Устанавливает частоту ШИМ c шагом 01
  */
-void config_set_hi_pwm_freq (int delta)
+void config_set_hi_pwm_freq (int8_t delta)
 {
     s_set_pwm_divider(0, delta);
 }
@@ -169,7 +170,7 @@ void config_set_hi_pwm_freq (int delta)
 /**
  * @brief Устанавливает частоту ШИМ c шагом 01
  */
-void config_set_lo_pwm_freq (int delta)
+void config_set_lo_pwm_freq (int8_t delta)
 {
     s_set_pwm_divider(1, delta);
 }
