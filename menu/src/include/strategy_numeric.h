@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-typedef struct numric_data {
+typedef struct numeric_data {
     int32_t *value_ptr;          // Указатель на значение
     int32_t min_value;           // Минимальное значение
     int32_t max_value;           // Максимальное значение

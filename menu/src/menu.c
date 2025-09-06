@@ -33,7 +33,7 @@ void menu_init(menu_handle_t **handle)
 {
     static menu_handle_t menu_handle = {0};
     *handle = &menu_handle;
-    // printf("size %d\n", sizeof(menu_handle_t));
+    printf("size %lu\n", sizeof(menu_handle_t));
     s_menu_prepare_root(&menu_handle);
 }
 
