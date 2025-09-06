@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "common.h"
 
@@ -26,60 +27,70 @@
 extern "C" {
 #endif
 
-/// Состояния узла меню
 typedef enum {
     MENU_NODE_UNUSED = 0,
     MENU_NODE_ACTIVE,
     MENU_NODE_IN_ACTION
 } menu_node_state_t;
 
-/// Коллбек для обработки действия (например, изменение значения)
-typedef void (*menu_node_action_t)(int8_t delta);
-
-/// Коллбек для печати значения в строку
-typedef void (*menu_node_print_t)(char *buf, size_t len);
-
 /// Opaque-тип: структура объявлена, но не раскрыта
 typedef struct menu_node menu_node_t;
+typedef struct menu_handle menu_handle_t;
+
+typedef void (*menu_node_push_button_t)(menu_handle_t *, menu_node_t *node);
+typedef void (*menu_node_long_push_button_t)(menu_handle_t *, menu_node_t *);
+typedef void (*menu_node_double_click_button_t)(menu_handle_t *, menu_node_t *);
+typedef void (*menu_node_delta_t)(menu_handle_t *, menu_node_t *, int8_t);
+typedef void (*menu_node_title_t)(menu_handle_t *, const menu_node_t *, char *, size_t);
+typedef void (*menu_node_value_t)(menu_handle_t *, const menu_node_t *, char *, size_t);
+typedef void (*menu_node_change_value_t)(void *data);
+
+typedef struct menu_node_strategy {
+    menu_node_push_button_t handle_push_button_fn;
+    menu_node_long_push_button_t handle_long_push_button_fn;
+    menu_node_double_click_button_t handle_double_click_button_fn;
+    menu_node_delta_t handle_delta_fn;
+    menu_node_title_t title_fn;
+    menu_node_value_t value_fn;
+} menu_node_strategy_t;
 
 /// ---------------- API ----------------
 
-void menu_init(void);
+void menu_init(menu_handle_t **handle);
 
-menu_node_t *menu_init_first(void);
+menu_node_t *menu_create_node(menu_handle_t *handle, const char *title, const menu_node_strategy_t *strategy);
+void menu_add_child(menu_handle_t *handle, menu_node_t *parent, menu_node_t *child);
+void menu_set_current(menu_handle_t *handle, menu_node_t *node);
 
-menu_node_t *menu_create_node(const char *title,
-                              menu_node_action_t action,
-                              menu_node_print_t print);
+bool menu_is_root(menu_handle_t *handle, menu_node_t *node);
+bool menu_is_leaf(menu_node_t *node);
+menu_node_state_t menu_state(menu_node_t *node);
 
-void menu_set_root(menu_node_t *node);
-void menu_set_current(menu_node_t *node);
+menu_node_t *menu_current(menu_handle_t *handle);
+menu_node_t *menu_node_child(menu_node_t *node);
+menu_node_t *menu_node_child_last(menu_node_t *node);
+menu_node_t *menu_node_parent(menu_node_t *node);
+menu_node_t *menu_resolve_current(menu_handle_t *handle, menu_node_t *node);
 
-menu_node_t *menu_root(void);
-menu_node_t *menu_current(void);
-const menu_node_t * menu_get_next(const menu_node_t *node);
-const menu_node_t * menu_get_prev(const menu_node_t *node);
+void menu_handle_push_button(menu_handle_t *handle, menu_node_t *node);
+void menu_handle_long_push_button(menu_handle_t *handle, menu_node_t *node);
+void menu_handle_delta(menu_handle_t *handle, menu_node_t *node, int8_t delta);
 
-bool menu_is_root(const menu_node_t *node);
-bool menu_is_leaf(const menu_node_t *node);
-bool menu_is_action(const menu_node_t *node);
+const char * menu_node_title(menu_node_t *node);
+void * menu_node_userdata(menu_node_t *node);
 
-void menu_add_child(menu_node_t *parent, menu_node_t *child);
+void menu_node_set_userdata(menu_node_t *node, void *data);
 
-void menu_enter(void);
-void menu_out(void);
-void menu_next(void);
-void menu_prev(void);
+void menu_node_set_change_value_cb(menu_node_t *node, menu_node_change_value_t change_value_cb);
+menu_node_change_value_t menu_node_change_value_cb(menu_node_t *node);
 
-void menu_handle_action(void);
-void menu_handle_delta(int8_t delta);
+void menu_next(menu_handle_t *handle, menu_node_t *node);
+void menu_prev(menu_handle_t *handle, menu_node_t *node);
 
-const menu_node_t *menu_child(const menu_node_t *node);
-const menu_node_t *menu_child_last(const menu_node_t *node);
-const menu_node_t *menu_parent(const menu_node_t *node);
+void menu_title_str(menu_handle_t *handle, menu_node_t *node, char *buf, size_t size);
+void menu_value_str(menu_handle_t *handle, menu_node_t *node, char *buf, size_t size);
 
-const char *menu_title(const menu_node_t *node);
-const char *menu_value(const menu_node_t *node);
+menu_node_t *menu_cycle(menu_node_t *node, bool forward);
 
 #ifdef __cplusplus
 }

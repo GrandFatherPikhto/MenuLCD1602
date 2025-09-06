@@ -1,82 +1,55 @@
 #include "menu.h"
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
 
-/// Полная структура спрятана здесь
 struct menu_node {
-    const char *title;
-    menu_node_action_t action;
-    menu_node_print_t print;
+    char title[MENU_TITLE_LEN];
 
     struct menu_node *parent;
     struct menu_node *children;
     struct menu_node *children_last;
     struct menu_node *next;
     struct menu_node *prev;
+    
+    void *userdata; 
 
-    uint8_t state; ///< menu_node_state_t
+    const menu_node_strategy_t *strategy;
+
+    menu_node_state_t state;
 };
 
-/// Контекст меню
-typedef struct {
+struct menu_handle {
 #if MENU_USAGE_STATIC_MEMORY
-    menu_node_t items[MENU_MAX_ITEMS];
+    struct menu_node items[MENU_MAX_ITEMS];
+#elif MENU_USAGE_DYNAMIC_MEMORY
+    
 #endif
-    menu_node_t *root;
-    menu_node_t *current;
-} menu_context_t;
+    struct menu_node *root;
+    struct menu_node *current;
+};
 
-static menu_context_t s_context;
-
-/// --- внутренние функции ---
 static void s_menu_prepare_chain(menu_node_t *parent);
-static menu_node_t *s_menu_cycle(menu_node_t *node, bool forward);
-static void s_menu_set_state(menu_node_t *node, menu_node_state_t state);
+static void s_menu_prepare_root(menu_handle_t *handle);
 
-bool menu_is_root(const menu_node_t *node)
+void menu_init(menu_handle_t **handle)
 {
-    return (node && node == s_context.root);
+    static menu_handle_t menu_handle = {0};
+    *handle = &menu_handle;
+    // printf("size %d\n", sizeof(menu_handle_t));
+    s_menu_prepare_root(&menu_handle);
 }
 
-bool menu_is_leaf(const menu_node_t *node)
-{
-    return (node && !node->children);
-}
-
-bool menu_is_action(const menu_node_t *node)
-{
-    if (node == 0) return false;
-    return node->state == MENU_NODE_IN_ACTION;
-}
-
-static void s_menu_set_state(menu_node_t *node, menu_node_state_t state)
-{
-    if (node) node->state = (uint8_t)state;
-}
-
-/// --- API реализация ---
-
-void menu_init(void)
-{
-    memset(&s_context, 0, sizeof(s_context));
-}
-
-menu_node_t *menu_create_node(const char *title,
-                              menu_node_action_t action,
-                              menu_node_print_t print)
+menu_node_t * menu_create_node(menu_handle_t *handle, const char *title, const menu_node_strategy_t *strategy)
 {
 #if MENU_USAGE_STATIC_MEMORY
     for (int i = 0; i < MENU_MAX_ITEMS; i++)
     {
-        if (s_context.items[i].state == MENU_NODE_UNUSED)
+        if (handle->items[i].state == MENU_NODE_UNUSED)
         {
-            menu_node_t *node = &s_context.items[i];
-            memset(node, 0, sizeof(*node));
-            node->title = title;
-            node->action = action;
-            node->print  = print;
-            s_menu_set_state(node, MENU_NODE_ACTIVE);
+            menu_node_t *node = &(handle->items[i]);
+            memset(node, 0, sizeof(menu_node_t));
+            strncpy(node->title, title, MENU_TITLE_LEN);
+            node->strategy = strategy;
+            node->state = MENU_NODE_ACTIVE;
+            menu_add_child(handle, handle->root, node);
             return node;
         }
     }
@@ -85,47 +58,26 @@ menu_node_t *menu_create_node(const char *title,
     menu_node_t *node = malloc(sizeof(menu_node_t));
     if (!node) return NULL;
     memset(node, 0, sizeof(*node));
-    node->title = title;
-    node->action = action;
-    node->print  = print;
+    strncpy(node->title, MENU_TITLE_LEN, title);
+    node->strategy = strategy;
     s_menu_set_state(node, MENU_NODE_ACTIVE);
     return node;
 #endif
 }
 
-void menu_set_root(menu_node_t *node)
-{
-    if (!node) return;
-
-    s_context.root = node;
-    s_context.current = node->children ? node->children : node;
-}
-
-void menu_set_current(menu_node_t *node)
-{
-    s_context.current = node;
-}
-
-menu_node_t *menu_root(void)
-{
-    return s_context.root;
-}
-
-menu_node_t *menu_current(void)
-{
-    return s_context.current;
-}
-
-void menu_add_child(menu_node_t *parent, menu_node_t *child)
+/**
+ * TODO: добавь проверку, что нода уже есть!
+ */
+void menu_add_child(menu_handle_t *handle, menu_node_t *parent, menu_node_t *child)
 {
     if (!parent || !child) return;
     
-    if (child->parent) {
-        // assert?
-        return;
+    if (parent == NULL)
+    {
+        child->parent = handle->root;
+    } else {
+        child->parent = parent;
     }
-
-    child->parent = parent;
 
     if (!parent->children)
     {
@@ -139,6 +91,178 @@ void menu_add_child(menu_node_t *parent, menu_node_t *child)
     }
 
     s_menu_prepare_chain(parent);
+}
+
+void menu_set_current(menu_handle_t *handle, menu_node_t *node)
+{
+    handle->current = (menu_node_t *)node;
+}
+
+void menu_node_set_userdata(menu_node_t *node, void *data)
+{
+    if (node == 0)
+        return;
+    node->userdata = data;
+}
+
+void menu_handle_push_button(menu_handle_t *handle, menu_node_t *node) {
+    menu_node_t *current = node;
+    if (current == 0)
+        current = handle->current;
+
+    if (current == 0)
+        return;
+
+    if (current && current->strategy && current->strategy->handle_push_button_fn) {
+        current->strategy->handle_push_button_fn(handle, current);
+    }
+}
+
+void menu_handle_long_push_button(menu_handle_t *handle, menu_node_t *node) {
+    menu_node_t *current = node;
+
+    if (current == 0)
+        current = handle->current;
+
+    if (current == 0)
+        return;
+
+    if (current && current->strategy && current->strategy->handle_long_push_button_fn) {
+        current->strategy->handle_long_push_button_fn(handle, current);
+    }
+}
+
+void menu_handle_delta(menu_handle_t *handle, menu_node_t *node, int8_t delta) {
+    menu_node_t *current = node;
+    if (current == 0)
+        current = handle->current;
+
+    if (current == 0)
+        return;
+
+
+    if (current && current->strategy && current->strategy->handle_delta_fn) {
+        current->strategy->handle_delta_fn(handle, current, delta);
+    }
+}
+
+const char *menu_node_title(menu_node_t *node)
+{
+    if (node == 0)
+        return "";
+    return node->title;
+}
+
+void *menu_node_userdata(menu_node_t *node)
+{
+    if (node == 0)
+        return 0;
+    return node->userdata;
+}
+
+void menu_title_str(menu_handle_t *handle, menu_node_t *node, char *buf, size_t size) {
+    menu_node_t *current = node;
+
+    if (current == 0)
+        current = menu_current(handle);
+
+    if (current && current->strategy && current->strategy->title_fn) {
+        memset(buf, 0, size);
+        current->strategy->title_fn(handle, current, buf, size);
+    }
+}
+
+void menu_value_str(menu_handle_t *handle, menu_node_t *node, char *buf, size_t size)
+{
+    menu_node_t *current = node;
+
+    if (current == 0)
+        current = menu_current(handle);
+
+    if (current && current->strategy && current->strategy->title_fn) {
+        memset(buf, 0, size);
+        current->strategy->value_fn(handle, node, buf, size);
+    }
+}
+
+void menu_next(menu_handle_t *handle, menu_node_t *node)
+{
+    menu_node_t *current = node;
+    if (current == 0)
+        current = menu_current(handle);
+
+    if (current == 0)
+        return;
+
+    handle->current = menu_cycle(current, true);
+}
+
+void menu_prev(menu_handle_t *handle, menu_node_t *node)
+{
+    menu_node_t *current = node;
+    if (current == 0)
+        current = menu_current(handle);
+
+    if (current == 0)
+        return;
+
+    handle->current = menu_cycle(current, false);
+}
+
+menu_node_t * menu_current(menu_handle_t *handle)
+{
+    if (handle->current == 0 && handle->root->children)
+        handle->current = handle->root->children;
+
+    return handle->current;
+}
+
+menu_node_t *menu_node_child(menu_node_t *node)
+{
+    return node->children;
+}
+
+menu_node_t *menu_node_child_last(menu_node_t *node)
+{
+    return node->children_last;
+}
+
+menu_node_t *menu_node_parent(menu_node_t *node)
+{
+    return node->parent;
+}
+
+menu_node_t *menu_resolve_current(menu_handle_t *handle, menu_node_t *node)
+{
+    if (!handle) return 0;
+
+    if (!node)
+        node = menu_current(handle);
+
+    return node;
+}
+
+bool menu_is_root(menu_handle_t *handle, menu_node_t *node)
+{
+    return (node && node == handle->root);
+}
+
+bool menu_is_leaf(menu_node_t *node)
+{
+    return (node && !node->children);
+}
+
+menu_node_state_t menu_state(menu_node_t *node)
+{
+    if (node == 0) return false;
+    return node->state;
+}
+
+menu_node_t *menu_cycle(menu_node_t *node, bool forward)
+{
+    if (!node) return 0;
+    return forward ? (node->next ? node->next : node->parent->children)
+                   : (node->prev ? node->prev : node->parent->children_last);
 }
 
 static void s_menu_prepare_chain(menu_node_t *parent)
@@ -155,134 +279,9 @@ static void s_menu_prepare_chain(menu_node_t *parent)
     }
 }
 
-void menu_enter(void)
+static void s_menu_prepare_root(menu_handle_t *handle)
 {
-    menu_node_t *cur = s_context.current;
-    
-    if (!cur) return;
-
-    if (menu_is_root(cur))
-        s_context.current = cur->children;
-
-    if (cur->state == MENU_NODE_IN_ACTION)
-    {
-        s_menu_set_state(cur, MENU_NODE_ACTIVE);
-    }
-    else if (!menu_is_leaf(cur))
-    {
-        s_context.current = cur->children;
-    }
-    else if (cur->action)
-    {
-        s_menu_set_state(cur, MENU_NODE_IN_ACTION);
-    }
-}
-
-void menu_out(void)
-{
-    menu_node_t *node = s_context.current;
-    if (!node || menu_is_root(node->parent)) return;
-
-    if (node->state == MENU_NODE_IN_ACTION)
-    {
-        s_menu_set_state(node, MENU_NODE_ACTIVE);
-    }
-    else
-    {
-        s_context.current = node->parent;
-    }
-}
-
-static menu_node_t *s_menu_cycle(menu_node_t *node, bool forward)
-{
-    if (!node) return NULL;
-    return forward ? (node->next ? node->next : node->parent->children)
-                   : (node->prev ? node->prev : node->parent->children_last);
-}
-
-void menu_next(void)
-{
-    s_context.current = s_menu_cycle(s_context.current, true);
-}
-
-const menu_node_t * menu_get_next(const menu_node_t *node)
-{
-    if (node == 0)
-        return 0;
-    return node->next;
-}
-
-const menu_node_t * menu_get_prev(const menu_node_t *node)
-{
-    if (node == 0)
-        return 0;
-    return node->prev;
-}
-
-void menu_prev(void)
-{
-    s_context.current = s_menu_cycle(s_context.current, false);
-}
-
-void menu_handle_action(void)
-{
-    menu_node_t *cur = s_context.current;
-    if (!cur) return;
-
-    if (cur->state == MENU_NODE_IN_ACTION && cur->action)
-    {
-        cur->action(1);
-    }
-    else
-    {
-        menu_enter();
-    }
-}
-
-void menu_handle_delta(int8_t delta)
-{
-    menu_node_t *cur = s_context.current;
-    if (!cur || delta == 0) return;
-
-    if (cur->state == MENU_NODE_IN_ACTION && cur->action)
-    {
-        cur->action(delta);
-    }
-    else
-    {
-        s_context.current = s_menu_cycle(cur, delta > 0);
-    }
-}
-
-const char *menu_title(const menu_node_t *node)
-{
-    return (node && node->title) ? node->title : "";
-}
-
-const char *menu_value(const menu_node_t *node)
-{
-    static char buf[MENU_VALUE_LEN];
-    if (!node) return "";
-
-    if (node->print)
-    {
-        node->print(buf, sizeof(buf));
-        return buf;
-    }
-    return "";
-}
-
-const menu_node_t *menu_child(const menu_node_t *node)
-{
-    return node->children;
-}
-
-const menu_node_t *menu_child_last(const menu_node_t *node)
-{
-    return node->children_last;
-}
-
-const menu_node_t *menu_parent(const menu_node_t *node)
-{
-    return node->parent;
+    handle->root = &(handle->items[0]);
+    handle->root->state = MENU_NODE_ACTIVE;
+    strncpy(handle->root->title, "Root", MENU_TITLE_LEN);
 }

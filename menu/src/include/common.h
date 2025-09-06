@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <termios.h>
 
+#define PULSE_MAX_TICKS 0x4000
+
 #define MENU_TITLE_LEN 0x20
 #define MENU_VALUE_LEN 0x20
 #define MENU_MAX_ITEMS 0x20

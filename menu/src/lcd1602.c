@@ -9,6 +9,9 @@ typedef struct lcd1602_handle {
     bool blink;
     int contrast;
     
+    get_str_title_fn_t get_title_fn;
+    get_str_value_fn_t get_value_fn;
+    
     rotary_encoder_callback_t position_cb;
     push_button_callback_t push_button_cb; 
     long_push_buttont_callback_t long_push_button_cb;
@@ -18,7 +21,9 @@ typedef struct lcd1602_handle {
 } lcd1602_handle_t;
 
 static void s_lcd_init(
-    lcd1602_handle_t *lcd, 
+    lcd1602_handle_t *lcd,
+    get_str_title_fn_t title_fn,
+    get_str_value_fn_t value_fn,
     rotary_encoder_callback_t position_cb, 
     push_button_callback_t push_button_cb, 
     long_push_buttont_callback_t long_push_button_cb);
@@ -27,7 +32,10 @@ static void s_lcd_render(SDL_Renderer *renderer, TTF_Font *font, lcd1602_handle_
 
 static void s_update_menu(lcd1602_handle_t *lcd);
 
-bool lcd1602_init(rotary_encoder_callback_t position_cb, 
+bool lcd1602_init(
+    get_str_title_fn_t title_fn,
+    get_str_value_fn_t value_fn,
+    rotary_encoder_callback_t position_cb, 
     push_button_callback_t push_button_cb, 
     long_push_buttont_callback_t long_push_button_cb)
 {
@@ -73,7 +81,7 @@ bool lcd1602_init(rotary_encoder_callback_t position_cb,
     }
     
     lcd1602_handle_t lcd;
-    s_lcd_init(&lcd, position_cb, push_button_cb, long_push_button_cb);
+    s_lcd_init(&lcd, title_fn, value_fn, position_cb, push_button_cb, long_push_button_cb);
     s_update_menu(&lcd);
     
     bool running = true;
@@ -132,6 +140,8 @@ bool lcd1602_init(rotary_encoder_callback_t position_cb,
 }
 
 static void s_lcd_init(lcd1602_handle_t *lcd, 
+    get_str_title_fn_t title_fn,
+    get_str_value_fn_t value_fn,
     rotary_encoder_callback_t position_cb, 
     push_button_callback_t push_button_cb, 
     long_push_buttont_callback_t long_push_button_cb) {
@@ -147,6 +157,8 @@ static void s_lcd_init(lcd1602_handle_t *lcd,
     lcd->blink = false;
     lcd->contrast = 50;
     lcd->pos = 0;
+    lcd->get_title_fn = title_fn;
+    lcd->get_value_fn = value_fn;
     lcd->position_cb = position_cb;
     lcd->push_button_cb = push_button_cb;
     lcd->long_push_button_cb = long_push_button_cb;
@@ -185,24 +197,11 @@ void lcd_print_str(lcd1602_handle_t *lcd, const char *str) {
 
 // Функции для работы с меню
 static void s_update_menu(lcd1602_handle_t *lcd) {
-    menu_node_t *current = menu_current();
-    if (!current) return;
-
-    const menu_node_t *parent = menu_parent(current);
-
-    const char *title = parent ? menu_title(parent) : menu_title(current);
-    const char *value = NULL;
-
-    if (menu_is_action(current))
-        value = menu_value(current);
-    else
-        value = menu_title(current);
-
     lcd_clear(lcd);
     lcd_set_cursor(lcd, 0, 0);
-    lcd_print_str(lcd, title);
+    lcd_print_str(lcd, lcd->get_title_fn());
     lcd_set_cursor(lcd, 0, 1);
-    lcd_print_str(lcd, value);
+    lcd_print_str(lcd, lcd->get_value_fn());
 }
 
 static void s_handle_key_press(SDL_Keycode key, bool long_press, lcd1602_handle_t *lcd) {

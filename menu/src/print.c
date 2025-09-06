@@ -5,15 +5,15 @@ static void s_print_menu_tree(const menu_node_t *node, int level);
 
 void print_menu(void)
 {
-    const menu_node_t *root = menu_root();
-    const menu_node_t *current = menu_child(root);
+    // const menu_node_t *root = menu_root();
+    // const menu_node_t *current = menu_child(root);
     
     printf("┌───────────────────────────────┐\n");
     printf("│          МЕНЮ СИСТЕМЫ         │\n");
     printf("├───────────────────────────────┤\n");
     
     // Рекурсивная функция для печати дерева
-    s_print_menu_tree(root, 0);
+    // s_print_menu_tree(root, 0);
     
     printf("└───────────────────────────────┘\n");
 }
@@ -21,6 +21,7 @@ void print_menu(void)
 // Вспомогательная рекурсивная функция для печати дерева
 static void s_print_menu_tree(const menu_node_t *node, int level)
 {
+#if 0    
     if (node == NULL) return;
     
     // Печатаем детей текущего узла
@@ -82,4 +83,5 @@ static void s_print_menu_tree(const menu_node_t *node, int level)
     
     if (level == 0)
         printf("│%-31s│\n", "");
+#endif        
 }

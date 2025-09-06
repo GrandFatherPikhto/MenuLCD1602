@@ -17,9 +17,15 @@ set(LIB_SOURCES
     src/menu.c
     src/config.c
     # src/console.c
-    src/print.c
+    # src/print.c
+    src/current.c
     src/rotary_encoder.c
     src/lcd1602.c
+    src/strategy_default.c
+    src/strategy_submenu.c
+    src/strategy_action.c
+    src/strategy_toggle.c
+    src/strategy_numeric.c
     )
 
 set(EXEC_SOURCES
