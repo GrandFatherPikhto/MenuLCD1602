@@ -6,3 +6,5 @@ build/
 
 # Исключить python
 /python/**
+
+config.bin
